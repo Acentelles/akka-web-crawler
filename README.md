@@ -2,24 +2,6 @@
 A simple web crawler built with Akka and Akka Streams. 
 It uses the websocket protocol to provide better interactivity.
 
-## Goal
-The crawler should be limited to one domain - so when
-crawling tomblomfield.com it would crawl all pages 
-within the domain, but not follow external links, 
-for example to the Facebook and Twitter accounts. 
-Given a URL, it should output a site map, showing which
-static assets each page depends on, and the links between pages.
-
-
-## Run it locally
-You'll need to have Scala and SBT (Simple Build Tool) installed in order to run the project.
-It also needs to have a Redis server running locally, 
-listening on port 6379 unless specified otherwise.
-
-Once installed, run:
-```
-sbt run
-```
 
 ## Considerations
 Crawling a website can take a long time. 
@@ -44,6 +26,16 @@ We use Redis for that matter.
 In case a user stops and starts crawling a domain that is already being crawled,
 the Akka supervisor will not create a new worker to run the same computation but
 will start listening to messages from the existing worker again.
+
+## Run it locally
+You'll need to have Scala and SBT (Simple Build Tool) installed in order to run the project.
+It also needs to have a Redis server running locally, 
+listening on port 6379 unless specified otherwise.
+
+Once installed, run:
+```
+sbt run
+```
 
 ## Run tests
 Run `sbt test`
