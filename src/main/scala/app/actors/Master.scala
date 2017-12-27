@@ -7,12 +7,16 @@ import akka.event.Logging
 import app.Model._
 
 object Master {
+  // FSM messages
   sealed trait Status
   case class Connected(outgoing: ActorRef) extends Status
   case object Disconnected extends Status
 
+  // Incoming messages
   case object StopCrawling
+  // It can also receive a URL type, which is also used in other actors
 
+  // Outgoing messages
   sealed trait OutgoingMsg
   case class Error(value: String, domain: String) extends OutgoingMsg
   case class PageMsg(value: Page, domain: String) extends OutgoingMsg
@@ -29,13 +33,14 @@ class Master extends Actor {
 
   // Behaviour 1: Not connected
   def receive: Receive = {
-    case Connected(outgoing) =>
+    case Connected(client) =>
       log.info("User connected")
-      context.become(connected(outgoing))
+      context.become(connected(client))
   }
 
   // Behaviour 2: Client connected
   def connected(client: ActorRef): Receive = {
+    // Incoming messages: URL, StopCrawling
     case validUrl: ValidUrl =>
       log.info(s"Received valid url: ${validUrl.value}")
       val worker: ActorRef = context.actorOf(Props(new Worker))
@@ -63,6 +68,13 @@ class Master extends Actor {
       log.info(s"Receiving invalid url: ${url.value}")
       client ! Error(s"${url.value} is not a valid url", url.value)
 
+    case StopCrawling =>
+      currentDomain.foreach(domain => {
+        stoppedDomains = stoppedDomains + domain
+      })
+      currentDomain = None
+
+    // Outgoing messages: PageMsg, Error, Success
     case pageMsg: PageMsg if currentDomain.contains(pageMsg.domain) =>
       client ! pageMsg
 
@@ -74,18 +86,13 @@ class Master extends Actor {
       currentDomain = None
       client ! success
 
-    case Success(sitemap)
-      if !currentDomain.contains(sitemap.domain) =>
-      stoppedDomains = stoppedDomains - sitemap.domain
+    case success: Success
+      if !currentDomain.contains(success.value.domain) =>
+      stoppedDomains = stoppedDomains - success.value.domain
 
+    // FSM messages
     case Disconnected =>
       log.info("Client disconnected")
       context.unbecome()
-
-    case StopCrawling =>
-      currentDomain.foreach(domain => {
-        stoppedDomains = stoppedDomains + domain
-      })
-      currentDomain = None
   }
 }

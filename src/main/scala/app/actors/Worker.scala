@@ -25,6 +25,10 @@ class Worker extends Actor {
 
   val browser = JsoupBrowser()
 
+  /**
+    * Distinguish between internal and external paths
+    * Sanitize and normalize path
+    */
   def extractPath(link: String, domain: String, path: String): Option[Path] = {
     if (link.startsWith("http://") || link.startsWith("https://")) {
       if (new URL(domain).getHost == new URL(link).getHost) {
@@ -47,6 +51,9 @@ class Worker extends Actor {
     }
   }
 
+  /**
+    * Extract links from <a href=""> tags
+    */
   def extractLinksFrom(domain: String, document: Document, path: String): Links =
     document >?> elementList("a") match {
       case None => Links()
@@ -62,6 +69,9 @@ class Worker extends Actor {
       }
     }
 
+  /**
+    * Check if a given path is an asset
+    */
   def isAsset(path: String): Boolean = {
     val regEx = """.*\.(\w+)""".r
     path match {
@@ -70,6 +80,9 @@ class Worker extends Actor {
     }
   }
 
+  /**
+    * Extract assets
+    */
   def extractAssetsFrom(domain: String, document: Document, path: String, tagName: String, attrName: String): Assets = {
     document >?> elementList(tagName) match {
       case None => Set.empty
@@ -85,6 +98,16 @@ class Worker extends Actor {
     }
   }
 
+  /**
+    * Assemble a page from a domain and a path
+    * case class Page(
+    *   path: String,
+    *   links: Links,
+    *   assets: Assets,
+    *   statusCode: Int,
+    *   title: Option[String] = None,
+    * )
+    */
   def assemblePage(domain: String, path: String): Option[Page] = {
     try {
       val document = browser.get(s"$domain$path")
@@ -112,6 +135,12 @@ class Worker extends Actor {
     }
   }
 
+  /**
+    * Crawl a domain recursively.
+    * Track visited and toVisit paths inside the domain
+    * Create a Page for each successful path visited
+    * Return a sitemap
+    */
   @tailrec
   private def crawl(
     domain: String,
@@ -135,6 +164,9 @@ class Worker extends Actor {
       }
   }
 
+  /**
+    * Retrieve the sitemap from the cache if possible
+    */
   def retrieveFromCache(domain: String): Option[Sitemap] = {
     redisClient.get(domain) match {
       case Some(value) => decode[Sitemap](value) match {
@@ -149,11 +181,17 @@ class Worker extends Actor {
     }
   }
 
+  /**
+    * Partial function that needs to be implemented in every actor
+    */
   def receive: Receive = {
+    // It can only receive a valid URL. Not valid URLs were rejected by parent actors
     case ValidUrl(value: String) =>
       val url = new URL(value)
       val domain = s"${url.getProtocol}://${url.getHost}"
       val path = if (url.getPath == "") "/" else url.getPath
+      // 1. Get from cache first
+      // 2. Crawl the domain
       retrieveFromCache(domain) match {
         case Some(cached) => sender ! Success(cached)
         case None =>

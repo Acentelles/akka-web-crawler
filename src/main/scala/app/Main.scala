@@ -11,7 +11,7 @@ object Main extends App {
   implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
 
   val routes: Route = (new Crawl).routes
-
-  println(s"Listening on port 8080")
-  Http().bindAndHandle(routes, "0.0.0.0", 8080)
+  val PORT = 8080
+  println(s"Listening on port $PORT")
+  Http().bindAndHandle(routes, "0.0.0.0", PORT)
 }

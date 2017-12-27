@@ -5,16 +5,11 @@ import java.net.URL
 import scala.util.Try
 
 object Model {
-  sealed trait Path
-  case class Internal(path: String) extends Path
-  case class External(path: String) extends Path
-
-  case class Links(
-    external: Set[String] = Set.empty,
-    internal: Set[String] = Set.empty
+  case class Sitemap(
+    domain: String,
+    pages: Map[String, Page],
+    edges: Set[Edge]
   )
-
-  type Assets = Set[String]
 
   case class Page(
     path: String,
@@ -25,12 +20,16 @@ object Model {
   )
 
   case class Edge(from: String, to: String)
-
-  case class Sitemap(
-    domain: String,
-    pages: Map[String, Page],
-    edges: Set[Edge]
+  type Assets = Set[String]
+  case class Links(
+    external: Set[String] = Set.empty,
+    internal: Set[String] = Set.empty
   )
+
+  sealed trait Path
+  case class Internal(path: String) extends Path
+  case class External(path: String) extends Path
+
 
   sealed trait Url
   case class NotCheckedUrl(value: String) extends Url {
