@@ -1,4 +1,4 @@
-# Web crawler
+# Akka web crawler
 A simple web crawler built with Akka and Akka Streams. 
 It uses the websocket protocol to provide better interactivity.
 
